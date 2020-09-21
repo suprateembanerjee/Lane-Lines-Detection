@@ -1,56 +1,52 @@
 # **Finding Lane Lines on the Road** 
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
-<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
-
 Overview
 ---
-
-When we drive, we use our eyes to decide where to go.  The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle.  Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm.
-
-In this project you will detect lane lines in images using Python and OpenCV.  OpenCV means "Open-Source Computer Vision", which is a package that has many useful tools for analyzing images.  
-
-To complete the project, two files will be submitted: a file containing project code and a file containing a brief write up explaining your solution. We have included template files to be used both for the [code](https://github.com/udacity/CarND-LaneLines-P1/blob/master/P1.ipynb) and the [writeup](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md).The code file is called P1.ipynb and the writeup template is writeup_template.md 
-
-To meet specifications in the project, take a look at the requirements in the [project rubric](https://review.udacity.com/#!/rubrics/322/view)
+This is a project aimed at finding and annotating lane lines on roads in video clips. The input consists of example videos without annotations, and the output consists of annotated videos depicting lane lines. This project is a part of Udacity's Self Driving Car Engineer Nanodegree program.
 
 
-Creating a Great Writeup
+Pipeline
 ---
-For this project, a great writeup should provide a detailed response to the "Reflection" section of the [project rubric](https://review.udacity.com/#!/rubrics/322/view). There are three parts to the reflection:
+The pipeline consists of several stages as follows:
 
-1. Describe the pipeline
+1. Extracting an image frame from the video
 
-2. Identify any shortcomings
+2. Grayscaling the image frame
+    
+    Converting from three channels to one channel helps us detect edges that may occur in any colour. By normalizing the spectrum from RGB to Black and White, it is easier to detect high frequency areas.
+    
+3. Blur the image frame
+    
+    Although Canny Edge detection does this step automatically by itself, additionally blurring the image before passing it to the algorithm has different and improved effects.
+    
+4. Extract edges using Canny Edge Detection Algorithm
 
-3. Suggest possible improvements
+    This algorithm finds out the high frequency areas in the image which are usually edges. We pass in two threshold values alongside the image. The lower threshold is used to eliminate any pixel with an intensity value below that number. The upper threshold is used to consider all pixels above it as being pure white, ie. 255. The pixels that fall in between the thresholds are analysed, and if they do form a high frequency together, they are made a part of the output image.The resultant image is similar to a chalkboard sketch, black background with white borders. I found the values 50 for lower threshold and 150 for upper threshold to work reasonably well.
+    
+5. Region Specification
 
-We encourage using images in your writeup to demonstrate how your pipeline works.  
+    The region is selected such that most of the unwanted/unnecessary bits are excluded from consideration. For us, the lane lines are the primary concern, and so I have used a quadrilateral that encompasses the region where the lane lines are expected in the fixed camera footage. These values are defined in the variable named 'vertices'.
+    
+6. Drawing the lines from the Canny dots
+    
+    Hough Transform is used to transform the region-bounded Canny edges into lines. I have used Rho = 1, Theta = one degree, threshold = 5, minimum line length = 50 and maximum line gap = 35 as they seem to offer the best results. Reducing the max line gap tended to separate the lower broken lines before the drawing function was modified to draw a single line. The transformation function itself calls the function responsible for drawing the lines on, ie annotating the video.
+    
+7. Finishing touches
 
-All that said, please be concise!  We're not looking for you to write a book here: just a brief description.
+    I have finally used a weighting function to make the lines semi-transparent and more appealing to the eye. I have not changed from the red colour as shown in the video as I felt this best annotated the image.
 
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup. Here is a link to a [writeup template file](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md). 
-
-
-The Project
+Shortcomings
 ---
+The project did work reasonably well on straight lane lines, but suffered when the lines curved at a distance. When this happened, the lines got shortened.
 
-## If you have already installed the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) you should be good to go!   If not, you should install the starter kit to get started on this project. ##
+Furthermore, on the Challenge video, I found very erratic placement of lines which logically do not represent the lane lines in any manner.The lane lines were completely unstable. This unstability extends to the other videos as well, but to a certain considerable limit. For instance,there is a frame towards the end of the video titled 'SolidWhiteRight', which is almost horizontal, and thereby inexplicable. There are rare unstabilities observed on the 'SolidYellowLeft' video as well, albeit limited in extent.
 
-**Step 1:** Set up the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) if you haven't already.
+Overall, in the road area right ahead of the car, the lane lines generated seem to depict reasonably well where the car should go. The code creates complications as we proceed to look at the further end of line of sight, where sometimes the lane line annotations intercept each other, and occationally flicker in an unstable manner.
 
-**Step 2:** Open the code in a Jupyter Notebook
 
-You will complete the project code in a Jupyter notebook.  If you are unfamiliar with Jupyter Notebooks, check out [Udacity's free course on Anaconda and Jupyter Notebooks](https://classroom.udacity.com/courses/ud1111) to get started.
+Possible improvements
+---
+Stability remains an open problem to be solved in this code. The lines are not as stable as would be desired in a real world self driving car.
 
-Jupyter is an Ipython notebook where you can run blocks of code and see results interactively.  All the code for this project is contained in a Jupyter notebook. To start Jupyter in your browser, use terminal to navigate to your project directory and then run the following command at the terminal prompt (be sure you've activated your Python 3 carnd-term1 environment as described in the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) installation instructions!):
-
-`> jupyter notebook`
-
-A browser window will appear showing the contents of the current directory.  Click on the file called "P1.ipynb".  Another browser window will appear displaying the notebook.  Follow the instructions in the notebook to complete the project.  
-
-**Step 3:** Complete the project and submit both the Ipython notebook and the project writeup
-
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
-
+Curves need to be addressed, and instead of drawing a line, a traced curved annotation would be more robust and better represent a real world.
